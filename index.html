@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruitment Email Generator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800">Recruitment Email Generator</h1>
+        
+        <!-- Template Selection -->
+        <div class="mb-6">
+            <label class="block text-gray-700 font-bold mb-2">Select Template Type</label>
+            <select id="templateType" class="w-full p-2 border rounded" onchange="updateForm()">
+                <option value="interview">Interview Invitation</option>
+                <option value="rejection">Rejection Email</option>
+                <option value="offer">Offer Letter</option>
+                <option value="followup">Follow-up Email</option>
+            </select>
+        </div>
+
+        <!-- Dynamic Form Fields -->
+        <div id="formFields" class="space-y-4 mb-6">
+            <!-- Will be populated by JavaScript -->
+        </div>
+
+        <!-- Output Area -->
+        <div class="mt-6">
+            <label class="block text-gray-700 font-bold mb-2">Generated Email</label>
+            <textarea id="output" class="w-full h-64 p-4 border rounded bg-gray-50" readonly></textarea>
+            <button onclick="copyToClipboard()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Copy to Clipboard
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const templates = {
+            interview: {
+                fields: [
+                    { id: 'candidateName', label: 'Candidate Name', type: 'text' },
+                    { id: 'position', label: 'Position', type: 'text' },
+                    { id: 'interviewType', label: 'Interview Type', type: 'select', 
+                      options: ['Video Call', 'Phone Call', 'In-person'] },
+                    { id: 'interviewerName', label: 'Interviewer Name', type: 'text' },
+                    { id: 'proposedDate', label: 'Proposed Date', type: 'date' }
+                ],
+                generate: (fields) => `Dear ${fields.candidateName},
+
+Thank you for your interest in the ${fields.position} position at our company. We were impressed with your profile and would like to invite you for a ${fields.interviewType.toLowerCase()}.
+
+Interview Details:
+Date: ${formatDate(fields.proposedDate)}
+Interviewer: ${fields.interviewerName}
+
+Please confirm if this time works for you by responding to this email. If not, please provide your availability for the next few days.
+
+Best regards,
+[Your name]
+Recruitment Team`
+            },
+            rejection: {
+                fields: [
+                    { id: 'candidateName', label: 'Candidate Name', type: 'text' },
+                    { id: 'position', label: 'Position', type: 'text' },
+                    { id: 'reason', label: 'Rejection Reason', type: 'select',
+                      options: ['Experience', 'Skills', 'Cultural Fit', 'Position Filled', 'General'] }
+                ],
+                generate: (fields) => `Dear ${fields.candidateName},
+
+Thank you for taking the time to apply for the ${fields.position} position and for your interest in joining our team.
+
+After careful consideration of your application, we have decided to move forward with other candidates who ${getRejectionReason(fields.reason)}.
+
+We appreciate your interest in our company and wish you the best in your job search.
+
+Best regards,
+[Your name]
+Recruitment Team`
+            },
+            offer: {
+                fields: [
+                    { id: 'candidateName', label: 'Candidate Name', type: 'text' },
+                    { id: 'position', label: 'Position', type: 'text' },
+                    { id: 'startDate', label: 'Start Date', type: 'date' },
+                    { id: 'salary', label: 'Annual Salary', type: 'number' }
+                ],
+                generate: (fields) => `Dear ${fields.candidateName},
+
+I am pleased to offer you the position of ${fields.position} at our company. Based on your experience and qualifications, we are offering you an annual salary of $${formatNumber(fields.salary)}.
+
+Proposed Start Date: ${formatDate(fields.startDate)}
+
+Please review the attached formal offer letter which includes detailed information about your compensation, benefits, and terms of employment.
+
+We are excited about the possibility of you joining our team!
+
+Best regards,
+[Your name]
+Recruitment Team`
+            },
+            followup: {
+                fields: [
+                    { id: 'candidateName', label: 'Candidate Name', type: 'text' },
+                    { id: 'position', label: 'Position', type: 'text' },
+                    { id: 'interviewDate', label: 'Interview Date', type: 'date' }
+                ],
+                generate: (fields) => `Dear ${fields.candidateName},
+
+I hope this email finds you well. I wanted to follow up regarding your recent interview for the ${fields.position} position that took place on ${formatDate(fields.interviewDate)}.
+
+We are still in the process of evaluating candidates and expect to have a decision by the end of this week. We appreciate your patience during our review process.
+
+Please don't hesitate to reach out if you have any questions in the meantime.
+
+Best regards,
+[Your name]
+Recruitment Team`
+            }
+        };
+
+        function updateForm() {
+            const templateType = document.getElementById('templateType').value;
+            const formFields = document.getElementById('formFields');
+            formFields.innerHTML = '';
+
+            templates[templateType].fields.forEach(field => {
+                const div = document.createElement('div');
+                div.className = 'mb-4';
+                
+                const label = document.createElement('label');
+                label.className = 'block text-gray-700 font-bold mb-2';
+                label.textContent = field.label;
+                
+                let input;
+                if (field.type === 'select') {
+                    input = document.createElement('select');
+                    field.options.forEach(option => {
+                        const opt = document.createElement('option');
+                        opt.value = option;
+                        opt.textContent = option;
+                        input.appendChild(opt);
+                    });
+                } else {
+                    input = document.createElement('input');
+                    input.type = field.type;
+                }
+                
+                input.id = field.id;
+                input.className = 'w-full p-2 border rounded';
+                input.onchange = generateEmail;
+                
+                div.appendChild(label);
+                div.appendChild(input);
+                formFields.appendChild(div);
+            });
+        }
+
+        function generateEmail() {
+            const templateType = document.getElementById('templateType').value;
+            const fields = {};
+            
+            templates[templateType].fields.forEach(field => {
+                fields[field.id] = document.getElementById(field.id).value;
+            });
+            
+            const emailText = templates[templateType].generate(fields);
+            document.getElementById('output').value = emailText;
+        }
+
+        function copyToClipboard() {
+            const output = document.getElementById('output');
+            output.select();
+            document.execCommand('copy');
+            alert('Copied to clipboard!');
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'long',
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        function formatNumber(num) {
+            return parseFloat(num).toLocaleString('en-US');
+        }
+
+        function getRejectionReason(reason) {
+            const reasons = {
+                'Experience': 'better match our experience requirements',
+                'Skills': 'more closely align with the technical requirements',
+                'Cultural Fit': 'better match our company culture',
+                'Position Filled': 'we have already filled the position',
+                'General': 'better match our current needs'
+            };
+            return reasons[reason] || 'better match our current needs';
+        }
+
+        // Initialize the form
+        updateForm();
+    </script>
+</body>
+</html>
